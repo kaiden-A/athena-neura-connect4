@@ -17,86 +17,96 @@ export function useGameState() {
     gameActive: false,
     scores: { a: 0, n: 0, draw: 0 },
     winningCells: [],
-    difficulty: 'MEDIUM',
+    difficulty: 'MEDIUM' as DifficultyLevel,
     transpositionTable: new Map(),
   }));
 
-  // Use ref for immediate access in async callbacks
-  const stateRef = useRef(gameState);
-  stateRef.current = gameState;
+  const stateRef = useRef<GameState>(gameState);
+  
+  const syncRef = useCallback((newState: GameState) => {
+    stateRef.current = newState;
+    setGameState(newState);
+  }, []);
 
   const startGame = useCallback((playerSide: Player) => {
-    const aiSide = playerSide === 'a' ? 'n' : 'a';
+    const aiSide: Player = playerSide === 'a' ? 'n' : 'a';
     const newState: GameState = {
       player: playerSide,
       ai: aiSide,
-      currentPlayer: 'a',
+      currentPlayer: 'a' as Player,
       board: createEmptyBoard(),
       gameActive: true,
       winningCells: [],
-      scores: stateRef.current.scores, // Preserve scores
+      scores: stateRef.current.scores,
       difficulty: stateRef.current.difficulty,
       transpositionTable: new Map(),
     };
-    setGameState(newState);
-    return newState; // Return so caller knows initial state
-  }, []);
+    syncRef(newState);
+    return newState;
+  }, [syncRef]);
 
   const makeMove = useCallback((row: number, col: number, side: Player): GameState => {
     const current = stateRef.current;
-    if (current.board[row][col] !== null) return current;
+    if (current.board[row][col] !== null) {
+      return current;
+    }
     
     const newBoard = current.board.map(r => [...r]);
     newBoard[row][col] = side;
     
-    const newState = { ...current, board: newBoard };
-    setGameState(newState);
+    const newState: GameState = { ...current, board: newBoard };
+    syncRef(newState);
     return newState;
-  }, []);
+  }, [syncRef]);
 
   const setGameEnd = useCallback((winner: Player | 'draw', winningCells: CellPosition[]) => {
-    setGameState(prev => {
-      const newScores = { ...prev.scores };
-      if (winner === 'draw') newScores.draw++;
-      else newScores[winner]++;
-      
-      return {
-        ...prev,
-        gameActive: false,
-        winningCells,
-        scores: newScores,
-      };
-    });
-  }, []);
+    const current = stateRef.current;
+    const newScores = { ...current.scores };
+    if (winner === 'draw') newScores.draw++;
+    else newScores[winner]++;
+    
+    const newState: GameState = {
+      ...current,
+      gameActive: false,
+      winningCells,
+      scores: newScores,
+    };
+    syncRef(newState);
+  }, [syncRef]);
 
   const switchTurn = useCallback(() => {
-    setGameState(prev => ({
-      ...prev,
-      currentPlayer: prev.currentPlayer === 'a' ? 'n' : 'a',
-    }));
-  }, []);
+    const current = stateRef.current;
+    const nextPlayer: Player = current.currentPlayer === 'a' ? 'n' : 'a';
+    const newState: GameState = {
+      ...current,
+      currentPlayer: nextPlayer,
+    };
+    syncRef(newState);
+  }, [syncRef]);
 
   const setDifficulty = useCallback((level: DifficultyLevel) => {
-    setGameState(prev => ({ ...prev, difficulty: level }));
-  }, []);
+    const current = stateRef.current;
+    const newState: GameState = { ...current, difficulty: level };
+    syncRef(newState);
+  }, [syncRef]);
 
   const resetGame = useCallback((): GameState => {
     const current = stateRef.current;
     const newState: GameState = {
       ...current,
       board: createEmptyBoard(),
-      currentPlayer: 'a',
+      currentPlayer: 'a' as Player,
       gameActive: true,
       winningCells: [],
       transpositionTable: new Map(),
     };
-    setGameState(newState);
+    syncRef(newState);
     return newState;
-  }, []);
+  }, [syncRef]);
 
   return {
     gameState,
-    stateRef, // Expose ref for hooks that need latest state
+    stateRef,
     startGame,
     makeMove,
     setGameEnd,

@@ -38,28 +38,37 @@ export function useGameLogic() {
   }, [setGameEnd, setScreen]);
 
   const executeAIMove = useCallback((currentState: GameState) => {
-    if (!currentState.gameActive) return;
-    if (!currentState.ai || !currentState.player) return;
-    if (currentState.currentPlayer !== currentState.ai) return;
-    
-    const aiMove = getAIMove(currentState);
-    if (!aiMove) {
-      processingRef.current = false;
-      return;
-    }
+      if (!currentState.gameActive) {
+        processingRef.current = false;
+        return;
+      }
+      if (!currentState.ai || !currentState.player) {
+        processingRef.current = false;
+        return;
+      }
+      if (currentState.currentPlayer !== currentState.ai) {
+        processingRef.current = false;
+        return;
+      }
+      
+      const aiMove = getAIMove(currentState);
+      if (!aiMove) {
+        processingRef.current = false;
+        return;
+      }
 
-    const afterAIMove = makeMove(aiMove.row, aiMove.col, currentState.ai);
-    
-    const result = checkGameEnd(afterAIMove, aiMove.row, aiMove.col, currentState.ai);
-    if (result.winner) {
-      handleGameEnd(result.winner, result.winningCells);
-      processingRef.current = false;
-      return;
-    }
+      const afterAIMove = makeMove(aiMove.row, aiMove.col, currentState.ai);
+      
+      const result = checkGameEnd(afterAIMove, aiMove.row, aiMove.col, currentState.ai);
+      if (result.winner) {
+        handleGameEnd(result.winner, result.winningCells);
+        processingRef.current = false;
+        return;
+      }
 
-    switchTurn();
-    processingRef.current = false;
-  }, [getAIMove, makeMove, checkGameEnd, handleGameEnd, switchTurn]);
+      switchTurn();
+      processingRef.current = false;
+    }, [getAIMove, makeMove, checkGameEnd, handleGameEnd, switchTurn]);
 
   const handleColumnClick = useCallback((col: number) => {
     if (processingRef.current) return;

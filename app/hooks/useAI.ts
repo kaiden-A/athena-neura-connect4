@@ -34,7 +34,7 @@ export function useAI() {
 
   const isBoardFull = useCallback((board: (Player | null)[][]): boolean => {
     for (let c = 0; c < COLS; c++) {
-      if (board[0][c] === null) return false;
+      if (board[ROWS - 1][c] === null) return false; // Check TOP row, not bottom
     }
     return true;
   }, []);
@@ -93,12 +93,12 @@ export function useAI() {
   }, [countLines]);
 
   const getValidColumns = useCallback((board: (Player | null)[][]): number[] => {
-    const cols: number[] = [];
-    for (let c = 0; c < COLS; c++) {
-      if (board[0][c] === null) cols.push(c);
-    }
-    return cols;
-  }, []);
+      const cols: number[] = [];
+      for (let c = 0; c < COLS; c++) {
+        if (getLowestEmptyRow(board, c) !== null) cols.push(c);
+      }
+      return cols;
+    }, [getLowestEmptyRow]);
 
   const isWinningBoard = useCallback((board: (Player | null)[][], side: Player): boolean => {
     for (let r = 0; r < ROWS; r++) {
